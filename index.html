@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Chemistry | v6.5 Instrument Monitor</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css"/>
+    <style>
+        :root {
+            /* Scientific Glass Palette (Dark) */
+            --bg-gradient: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%);
+            --glass-surface: rgba(30, 41, 59, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.03);
+            
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.3);
+            
+            --accent: #818cf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            --success: #34d399;
+            --danger: #f87171;
+            
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            
+            --input-bg: rgba(0, 0, 0, 0.2);
+        }
+
+        [data-theme="light"] {
+            /* Light Glass Palette - FIXED CONTRAST */
+            --bg-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            --glass-surface: rgba(255, 255, 255, 0.85); 
+            --glass-border: rgba(15, 23, 42, 0.15); 
+            --glass-highlight: rgba(15, 23, 42, 0.05);
+            
+            --primary: #0284c7;
+            --primary-glow: rgba(2, 132, 199, 0.2);
+            --accent: #4f46e5;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            
+            --success: #16a34a;
+            --danger: #dc2626;
+            
+            --input-bg: rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Vazirmatn', sans-serif;
+            outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        body { 
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-main); 
+            min-height: 100vh; 
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 30px 20px; font-size: 15px;
+        }
+        
+        /* Glass Container */
+        .app-container { 
+            width: 100%; max-width: 1000px; 
+            background: var(--glass-surface);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+            overflow: hidden; display: flex; flex-direction: column; 
+            margin-bottom: 30px; position: relative;
+        }
+        .app-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent); opacity: 0.5;
+        }
+
+        /* Header */
+        header { width: 100%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 10px; }
+        .brand h1 { font-size: 1.8rem; font-weight: 200; letter-spacing: 1px; margin: 0; text-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
+        [data-theme="light"] .brand h1 { text-shadow: none; }
+        .brand span { color: var(--primary); font-weight: 800; }
+        .version-tag { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; opacity: 0.7; cursor: help; }
+        
+        /* Toolbar */
+        .toolbar { display: flex; gap: 10px; align-items: center; background: var(--glass-surface); padding: 6px 12px; border-radius: 50px; border: 1px solid var(--glass-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .tool-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 8px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .tool-btn:hover { background: var(--glass-highlight); color: var(--text-main); transform: scale(1.1); box-shadow: 0 0 15px var(--primary-glow); }
+        .sep { width: 1px; height: 24px; background: var(--glass-border); margin: 0 4px; }
+        
+        select.lang-select { background: transparent; color: var(--text-muted); border: none; font-size: 0.85rem; cursor: pointer; font-weight: 600; padding: 5px 10px; text-transform: uppercase; letter-spacing: 1px; }
+        select.lang-select option { background: #1e293b; color: #f8fafc; }
+        [data-theme="light"] select.lang-select option { background: #fff; color: #000; }
+
+        /* Tabs */
+        .tabs { display: flex; padding: 10px 20px 0; gap: 10px; border-bottom: 1px solid var(--glass-border); }
+        .tab-btn { padding: 15px 25px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.95rem; position: relative; font-weight: 500; transition: 0.3s; border-radius: var(--radius-md) var(--radius-md) 0 0; }
+        .tab-btn:hover { color: var(--text-main); background: var(--glass-highlight); }
+        .tab-btn.active { color: var(--primary); font-weight: 700; background: linear-gradient(to top, var(--glass-highlight), transparent); }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; background: var(--primary); box-shadow: 0 -2px 10px var(--primary); }
+
+        /* Content */
+        .content-area { padding: 30px; min-height: 450px; }
+        .view-section { display: none; opacity: 0; transform: translateY(10px); }
+        .view-section.active { display: block; opacity: 1; transform: translateY(0); animation: floatUp 0.4s ease forwards; }
+        @keyframes floatUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* Inputs & Grid */
+        .input-row { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
+        .cal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; margin-bottom: 15px; align-items: stretch; }
+        .cal-grid input { width: 100% !important; min-width: 0 !important; margin: 0 !important; }
+        .cal-grid .btn { width: 100%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+
+        input[type="text"], input[type="number"], select.ui-select { 
+            background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); padding: 12px 16px; border-radius: var(--radius-sm); font-size: 1rem; text-align: center; flex: 1; font-family: 'Courier New', monospace; font-weight: bold;
+        }
+        input:focus, select.ui-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); background: rgba(125,125,125, 0.1); }
+        
+        .btn { padding: 12px 24px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-weight: 700; white-space: nowrap; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.85rem; position: relative; overflow: hidden; }
+        .btn-primary { background: var(--primary); color: #0f172a; box-shadow: 0 4px 15px var(--primary-glow); }
+        [data-theme="light"] .btn-primary { color: #fff; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px var(--primary-glow); filter: brightness(1.1); }
+        .btn-ghost { background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted); }
+        .btn-ghost:hover { border-color: var(--text-main); color: var(--text-main); background: var(--glass-highlight); }
+        .btn-del { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--danger); background: rgba(248, 113, 113, 0.1); border: 1px solid transparent; cursor: pointer; }
+        .btn-del:hover { background: var(--danger); color: white; transform: scale(1.1); }
+
+        .seg-control { display: flex; background: var(--input-bg); border-radius: var(--radius-sm); padding: 4px; border: 1px solid var(--glass-border); }
+        .seg-btn { flex: 1; background: transparent; border: none; color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+        .seg-btn:hover { color: var(--text-main); }
+        .seg-btn.active { background: var(--glass-surface); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--glass-border); }
+
+        .settings-panel { background: var(--glass-highlight); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px; display: none; animation: slideDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .settings-panel.open { display: block; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .check-group { display: flex; gap: 25px; flex-wrap: wrap; margin-bottom: 10px; }
+        .check-label { display: flex; align-items: center; gap: 10px; color: var(--text-main); cursor: pointer; font-size: 0.9rem; }
+        input[type="checkbox"] { appearance: none; width: 18px; height: 18px; border: 2px solid var(--text-muted); border-radius: 4px; cursor: pointer; display: grid; place-content: center; }
+        input[type="checkbox"]::before { content: ""; width: 10px; height: 10px; transform: scale(0); transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em var(--primary); border-radius: 2px; }
+        input[type="checkbox"]:checked::before { transform: scale(1); }
+        input[type="checkbox"]:checked { border-color: var(--primary); }
+
+        .pool-box { background: var(--glass-highlight); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); position: relative; display: flex; flex-direction: column; height: 100%; transition: border-color 0.3s; }
+        .pool-box:hover { border-color: var(--text-muted); }
+        .pool-header { font-size: 0.8rem; color: var(--primary); margin-bottom: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+        .data-table-container { max-height: 250px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--glass-border); scrollbar-width: thin; scrollbar-color: var(--glass-border) transparent; }
+        .simple-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.9rem; }
+        .simple-table td { padding: 10px; border-bottom: 1px solid var(--glass-border); color: var(--text-main); text-align: center; }
+        .simple-table tr:hover td { background: var(--glass-highlight); }
+        
+        .row { display: flex; gap: 25px; flex-wrap: wrap; } .col { flex: 1; min-width: 350px; } 
+        .section-title { color: var(--accent); font-size: 0.8rem; margin: 30px 0 15px 0; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; border-bottom: 1px solid var(--glass-border); }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .stat-card { background: var(--glass-highlight); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); transition: transform 0.2s, background 0.2s; position: relative; overflow: hidden; }
+        .stat-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+        .stat-card h5 { color: var(--text-muted); font-size: 0.75rem; margin-bottom: 8px; font-weight: 500; text-transform: uppercase; }
+        .stat-card .value { font-size: 1.3rem; color: var(--text-main); font-family: 'Courier New', monospace; direction: ltr; font-weight: 700; letter-spacing: -0.5px; }
+        .stat-card.highlight { background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.3); }
+        [data-theme="light"] .stat-card.highlight { background: rgba(2, 132, 199, 0.05); border-color: rgba(2, 132, 199, 0.3); }
+        .stat-card.highlight .value { color: var(--primary); }
+
+        .val-box { margin-top: 25px; padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%); border-left: 4px solid var(--success); }
+        .val-header { color: var(--success); font-weight: 700; font-size: 0.85rem; margin-bottom: 15px; display: block; text-transform: uppercase; letter-spacing: 1px; }
+        .force-ltr { direction: ltr !important; }
+
+        /* --- UPDATED CHART STYLE: INSTRUMENT MONITOR --- */
+        canvas { 
+            width: 100%; height: 350px; 
+            /* Solid Dark Background for Contrast in both modes */
+            background: #09090b; 
+            border-radius: var(--radius-md);
+            border: 2px solid #334155; /* Tech border */
+            margin-top: 20px; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .chart-controls { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+        .chart-toggle-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
+        .chart-toggle-btn:hover { color: var(--text-main); border-color: var(--text-main); }
+        .chart-toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
+
+        footer { margin-top: auto; padding-top: 30px; text-align: center; width: 100%; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--glass-border); max-width: 900px; opacity: 0.6; }
+        
+        @media print {
+            body { background: white; color: black; }
+            .app-container { box-shadow: none; border: none; max-width: 100%; backdrop-filter: none; background: white; }
+            header { justify-content: center; border-bottom: 2px solid black; }
+            .tabs, .input-row, .btn, .btn-del, .toolbar, .chart-controls, footer, .seg-control { display: none !important; }
+            .view-section { display: none; } .view-section.active { display: block; opacity: 1; transform: none; }
+            .stat-card, .val-box, .pool-box { border: 1px solid #000; break-inside: avoid; background: white !important; box-shadow: none !important; }
+            .stat-card .value { color: black !important; text-shadow: none !important; }
+            canvas { border: 1px solid #000; background: white !important; }
+            * { text-shadow: none !important; color: black !important; }
+        }
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <h1>Statistical <span>Chemistry</span></h1>
+            <div class="version-tag" onclick="app.loadDemoData()" title="Click to load Test Data">v6.5 Instrument Monitor</div>
+        </div>
+        
+        <div class="toolbar">
+            <select class="lang-select" id="langSel" onchange="app.setLang(this.value)">
+                <option value="en" selected>EN</option>
+                <option value="fa">FA</option>
+                <option value="de">DE</option>
+                <option value="fr">FR</option>
+            </select>
+            <div class="sep"></div>
+            <button class="tool-btn" onclick="app.toggleTheme()" title="Switch Theme">🌓</button>
+            <div class="sep"></div>
+            <button class="tool-btn" onclick="app.exportData()" title="Save Project">💾</button>
+            <button class="tool-btn" onclick="document.getElementById('fileInput').click()" title="Load Project">📂</button>
+            <button class="tool-btn" onclick="window.print()" title="Print PDF">🖨️</button>
+            <div class="sep"></div>
+            <button class="tool-btn" onclick="app.hardReset()" title="Reset All Data" style="color:var(--danger)">🗑️</button>
+            <input type="file" id="fileInput" accept=".json" onchange="app.importData(this)">
+        </div>
+    </header>
+
+    <div class="app-container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="app.switchTab('desc')" data-t="tab_desc">Descriptive Stats</button>
+            <button class="tab-btn" onclick="app.switchTab('test')" data-t="tab_test">Hypothesis Tests</button>
+            <button class="tab-btn" onclick="app.switchTab('reg')" data-t="tab_reg">Calibration</button>
+        </div>
+
+        <div id="view-desc" class="content-area view-section active">
+            <div class="input-row" style="justify-content: space-between; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <span style="color:var(--text-muted); font-size:0.9rem;" data-t="conf_lvl">Confidence Level:</span>
+                    <div class="seg-control">
+                        <button class="seg-btn" onclick="app.setConf(0.90)" id="conf90">90%</button>
+                        <button class="seg-btn active" onclick="app.setConf(0.95)" id="conf95">95%</button>
+                        <button class="seg-btn" onclick="app.setConf(0.99)" id="conf99">99%</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pool-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <span class="pool-header" data-t="data_pool">Data Points</span>
+                    <button class="btn btn-ghost" style="padding:6px 14px; font-size:0.8rem;" onclick="app.toggleSettings()">
+                        ⚙️ <span data-t="methods">Settings</span>
+                    </button>
+                </div>
+
+                <div id="settingsPanel" class="settings-panel">
+                    <span class="pool-header" style="display:block; margin-bottom:10px; font-size:0.75rem; color:var(--text-muted)" data-t="dec_prec">Decimals (Precision):</span>
+                    <div class="seg-control" style="max-width:300px; margin-bottom:20px">
+                         <button class="seg-btn active" onclick="app.setPrec(4)" id="prec4">4</button>
+                         <button class="seg-btn" onclick="app.setPrec(3)" id="prec3">3</button>
+                         <button class="seg-btn" onclick="app.setPrec(2)" id="prec2">2</button>
+                    </div>
+
+                    <span class="pool-header" style="display:block; margin-bottom:10px; font-size:0.75rem; color:var(--text-muted)" data-t="out_methods">Outlier Detection:</span>
+                    <div class="check-group">
+                        <label class="check-label"><input type="checkbox" id="chkQ" onchange="app.runDesc()" checked> Dixon's Q-Test</label>
+                        <label class="check-label"><input type="checkbox" id="chkZ" onchange="app.runDesc()"> Z-Score (Sigma)</label>
+                        <label class="check-label"><input type="checkbox" id="chkIQR" onchange="app.runDesc()"> IQR (Robust)</label>
+                    </div>
+                </div>
+
+                <div class="input-row" style="margin-bottom:10px;">
+                    <input type="text" id="inpDesc" data-ph="enter_data" placeholder="e.g. 12.5" onkeydown="if(event.key==='Enter') app.addData('Desc')">
+                    <button class="btn btn-primary" onclick="app.addData('Desc')"><span data-t="add">ADD DATA</span></button>
+                </div>
+                <div class="data-table-container">
+                    <table class="simple-table">
+                        <tbody id="poolDesc"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="resDesc"></div>
+        </div>
+
+        <div id="view-test" class="content-area view-section">
+            <div class="input-row">
+                <select class="ui-select" id="testType" onchange="app.updateTestUI()" style="flex:2">
+                    <option value="t_one" data-t="test_t1" selected>One-Sample t-Test</option>
+                    <option value="t_ind" data-t="test_t2">Independent t-Test</option>
+                    <option value="f_test" data-t="test_f">F-Test (Precision)</option>
+                </select>
+                <button class="btn btn-primary" onclick="app.runTest()"><span data-t="run">RUN ANALYSIS</span></button>
+            </div>
+            
+            <div class="row">
+                <div class="col pool-box">
+                    <span class="pool-header" data-t="grp_a">Group A</span>
+                    <div class="input-row" style="margin-bottom:10px">
+                        <input id="inpA" type="text" onkeydown="if(event.key==='Enter') app.addData('A')">
+                        <button class="btn btn-primary" onclick="app.addData('A')">+</button>
+                    </div>
+                    <div class="data-table-container"><table class="simple-table"><tbody id="poolA"></tbody></table></div>
+                </div>
+                <div class="col pool-box" id="boxB" style="display:none;">
+                    <span class="pool-header" data-t="grp_b">Group B</span>
+                    <div class="input-row" style="margin-bottom:10px">
+                        <input id="inpB" type="text" onkeydown="if(event.key==='Enter') app.addData('B')">
+                        <button class="btn btn-primary" onclick="app.addData('B')">+</button>
+                    </div>
+                    <div class="data-table-container"><table class="simple-table"><tbody id="poolB"></tbody></table></div>
+                </div>
+                <div class="col pool-box" id="boxMu" style="display:flex; justify-content:center; align-items:center; background: rgba(56, 189, 248, 0.03);">
+                    <div style="width:100%">
+                        <span class="pool-header" style="text-align:center; display:block" data-t="true_val">True Value (μ)</span>
+                        <input id="inpMu" type="text" data-ph="enter_val" placeholder="e.g. 100.0" onchange="app.saveState()" style="width:100%; margin-top:10px; font-size:1.2rem; color:var(--primary);">
+                    </div>
+                </div>
+            </div>
+            <div id="resTest"></div>
+        </div>
+
+        <div id="view-reg" class="content-area view-section">
+            <div class="row">
+                <div class="col pool-box">
+                     <span class="pool-header" data-t="cal_points">Calibration Data</span>
+                    
+                    <div class="cal-grid">
+                        <input id="regX" type="text" data-ph="conc" placeholder="Conc (X)">
+                        <input id="regY" type="text" data-ph="sig" placeholder="Signal (Y)">
+                        <input id="regIS" type="text" data-ph="is_sig" placeholder="IS Signal" style="display:none; border-color:var(--accent); color:var(--accent)">
+                        <button class="btn btn-primary" onclick="app.addRegPoint()" title="Add Point">+</button>
+                    </div>
+
+                    <div class="data-table-container force-ltr">
+                        <table class="simple-table">
+                            <thead><tr style="color:var(--text-muted); font-size:0.8rem"><th>X (Conc)</th><th>Y (Sig)</th><th id="thIS" style="display:none; color:var(--accent)">IS</th><th></th></tr></thead>
+                            <tbody id="regTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                 <div class="col">
+                     <div style="background:var(--glass-highlight); padding:15px; border-radius:var(--radius-sm); margin-bottom:15px; border:1px solid var(--glass-border)">
+                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                             <span style="color:var(--text-muted); font-size:0.85rem; text-transform:uppercase; letter-spacing:1px">Method:</span>
+                             <select class="ui-select" id="regMethod" onchange="app.updateRegUI(); app.calcReg()" style="padding:6px; flex:none; width:65%; font-size:0.9rem; background: var(--input-bg)">
+                                 <option value="ext_std" data-t="meth_ext">External Std (Normal)</option>
+                                 <option value="std_add" data-t="meth_add">Standard Addition</option>
+                                 <option value="int_std" data-t="meth_int" style="color:var(--accent);">Internal Standard (IS)</option>
+                             </select>
+                         </div>
+                         <div style="display:flex; align-items:center; gap:8px;">
+                             <label class="check-label" style="font-size:0.8rem; color:var(--primary); font-weight:600;">
+                                 <input type="checkbox" id="chkWeight" onchange="app.calcReg()"> 
+                                 Weighted Regression (1/x²)
+                             </label>
+                         </div>
+                     </div>
+
+                     <div class="force-ltr">
+                        <canvas id="regChart"></canvas>
+                     </div>
+                     <div class="chart-controls">
+                         <button class="chart-toggle-btn active" id="btnFit" onclick="app.setChartMode('fit')" data-t="fit_line">Fit Line</button>
+                         <button class="chart-toggle-btn" id="btnRes" onclick="app.setChartMode('res')" data-t="residuals">Residuals</button>
+                     </div>
+                </div>
+            </div>
+            
+            <div id="resReg"></div>
+            
+            <div class="pool-box" id="calcUnknown" style="display:none; border-color:var(--success); background:rgba(16, 185, 129, 0.05); margin-top:25px; flex-direction:row; align-items:center; gap:15px; flex-wrap:wrap;">
+                <span style="font-weight:700; color:var(--success); white-space:nowrap; text-transform:uppercase; letter-spacing:1px;" data-t="unk_calc">Unknown:</span>
+                <input id="calcY" type="text" data-ph="enter_sig" placeholder="Enter Signal" style="background:var(--input-bg); min-width:120px;">
+                <input id="calcIS" type="text" data-ph="is_sig" placeholder="IS Sig" style="background:var(--input-bg); min-width:80px; display:none; border-color:var(--accent); color:var(--accent)">
+                <button class="btn btn-primary" style="background:var(--success); box-shadow:0 4px 15px rgba(52, 211, 153, 0.3);" onclick="app.calcUnknown()"><span data-t="calc">CALCULATE</span></button>
+                <span id="resUnknown" style="font-family:'Courier New', monospace; font-size:1.4rem; font-weight:bold; margin-left:auto; direction:ltr; color:var(--text-main); text-shadow:0 0 10px rgba(255,255,255,0.2)"></span>
+            </div>
+
+            <div class="val-box">
+                <span class="val-header" data-t="rec_title">Validation: Recovery Test</span>
+                <div class="input-row" style="margin-bottom:0">
+                    <input id="recUnspiked" type="text" placeholder="Sample Conc." data-ph="ph_samp" style="background:var(--input-bg)">
+                    <input id="recSpiked" type="text" placeholder="Spiked Conc." data-ph="ph_spik" style="background:var(--input-bg)">
+                    <input id="recAdded" type="text" placeholder="Added Std." data-ph="ph_add" style="background:var(--input-bg)">
+                    <button class="btn btn-primary" onclick="app.calcRecovery()" style="background:var(--accent); box-shadow:0 4px 15px rgba(129, 140, 248, 0.3);">%</button>
+                </div>
+                <div id="recResult" style="margin-top:15px; font-weight:bold; text-align:center; color:var(--text-main); font-family:'Courier New', monospace;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        <div>Created by <strong>Alireza Eivazi</strong> | 2026 | v6.5 Instrument Monitor</div>
+    </footer>
+
+<script>
+window.app = (function() {
+    
+    // --- DICTIONARY ---
+    const dict = {
+        en: {
+            tab_desc: "Descriptive Stats", tab_test: "Hypothesis Tests", tab_reg: "Calibration",
+            conf_lvl: "Confidence Level:", data_pool: "Data Points", add: "Add", clear: "Clear",
+            run: "RUN ANALYSIS", test_t1: "One-Sample t-Test", test_t2: "Independent t-Test", test_f: "F-Test (Precision)",
+            cal_points: "Calibration Data", clear_all: "Reset All", save: "Save", load: "Load", report: "Report",
+            grp_a: "Group A", grp_b: "Group B", true_val: "True Value (μ)", methods: "Settings", out_methods: "Detection Methods:",
+            conc: "Conc (X)", sig: "Signal (Y)", is_sig: "IS Sig",
+            fit_line: "Fit Line", residuals: "Residuals", unk_calc: "Unknown:", calc: "Calc",
+            enter_data: "e.g. 12.5", enter_val: "e.g. 100.0", enter_sig: "Enter Signal",
+            mean: "Mean", median: "Median", std: "Std Dev", count: "Count", rsd: "RSD %", range: "Range", iqr: "IQR", ci: "CI", out: "Outliers", none: "None",
+            t_calc: "t-Calc", t_crit: "t-Crit", f_calc: "F-Calc", bias: "Bias Detected", acc: "Accurate", diff: "Difference", sim: "Similar",
+            eq: "Equation", r2: "R²", lod: "LOD", loq: "LOQ", res_sum: "Result Summary", mod_perf: "Model Performance",
+            meth_ext: "External Standard", meth_add: "Standard Addition", meth_int: "Internal Standard",
+            rec_title: "Validation: Recovery Test", ph_samp: "Sample Conc.", ph_spik: "Spiked Res.", ph_add: "Added Std.",
+            rec_res: "Recovery:", sa_res: "Extrapolated Conc:", dec_prec: "Decimals (Precision):"
+        },
+        fa: {
+            tab_desc: "آمار توصیفی", tab_test: "آزمون‌های فرض", tab_reg: "کالیبراسیون",
+            conf_lvl: "سطح اطمینان:", data_pool: "داده‌های ورودی", add: "افزودن", clear: "پاک‌سازی",
+            run: "اجرا", test_t1: "تست میانگین (تک‌نمونه)", test_t2: "مقایسه دو روش (مستقل)", test_f: "تست اف (دقت)",
+            cal_points: "داده‌های کالیبراسیون", clear_all: "حذف همه", save: "ذخیره", load: "لود", report: "گزارش",
+            grp_a: "گروه A", grp_b: "گروه B", true_val: "مقدار واقعی (μ)", methods: "تنظیمات", out_methods: "روش‌های تشخیص پرت:",
+            conc: "غلظت (X)", sig: "سیگنال (Y)", is_sig: "سیگنال IS",
+            fit_line: "منحنی", residuals: "خطاها", unk_calc: "مجهول:", calc: "محاسبه",
+            enter_data: "مثلاً ۱۲.۵", enter_val: "مثلاً ۱۰۰", enter_sig: "سیگنال...",
+            mean: "میانگین", median: "میانه", std: "انحراف معیار", count: "تعداد", rsd: "RSD %", range: "دامنه", iqr: "IQR", ci: "بازه اطمینان", out: "داده پرت", none: "ندارد",
+            t_calc: "t-محاسباتی", t_crit: "t-بحرانی", f_calc: "F-محاسباتی", bias: "خطا دارد", acc: "دقیق است", diff: "تفاوت دارند", sim: "مشابه‌اند",
+            eq: "معادله", r2: "ضریب R²", lod: "حد تشخیص (LOD)", loq: "حد کمی (LOQ)", res_sum: "خلاصه نتایج", mod_perf: "عملکرد مدل",
+            meth_ext: "استاندارد خارجی (معمولی)", meth_add: "افزایش استاندارد (Standard Addition)", meth_int: "استاندارد داخلی (Internal Std)",
+            rec_title: "معتبرسازی: تست بازیابی (Recovery)", ph_samp: "غلظت نمونه", ph_spik: "غلظت اسپایک", ph_add: "استاندارد افزوده",
+            rec_res: "بازیابی:", sa_res: "غلظت برون‌یابی شده:", dec_prec: "تعداد اعشار (دقت):"
+        }
+    };
+    ['de','fr'].forEach(l => { Object.keys(dict.en).forEach(k => { if(!dict[l]) dict[l]={}; if(!dict[l][k]) dict[l][k] = dict.en[k]; }); });
+
+    let curLang = 'en';
+    let curConf = 0.95;
+    let curPrec = 4;
+
+    function t(key) { return dict[curLang][key] || key; }
+    
+    function fmt(num) {
+        if (num === undefined || num === null || isNaN(num)) return "-";
+        return Number(num.toFixed(curPrec));
+    }
+
+    function setLang(l) {
+        curLang = l;
+        document.documentElement.lang = l;
+        document.documentElement.dir = (l === 'fa' || l === 'ar') ? 'rtl' : 'ltr';
+        document.querySelectorAll('[data-t]').forEach(el => el.innerText = t(el.getAttribute('data-t')));
+        document.querySelectorAll('[data-ph]').forEach(el => el.placeholder = t(el.getAttribute('data-ph')));
+        app.runDesc(); app.runTest(true); app.calcReg(true);
+        savePrefs();
+    }
+
+    function toggleTheme() {
+        const root = document.documentElement;
+        root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        savePrefs();
+    }
+
+    function setConf(val) {
+        curConf = val;
+        document.querySelectorAll('#settingsPanel .seg-btn').forEach(b => {
+             if(b.id.startsWith('conf')) b.classList.remove('active');
+        });
+        if(val===0.90) document.getElementById('conf90').classList.add('active');
+        if(val===0.95) document.getElementById('conf95').classList.add('active');
+        if(val===0.99) document.getElementById('conf99').classList.add('active');
+        runDesc();
+    }
+    
+    function setPrec(val) {
+        curPrec = val;
+        document.querySelectorAll('#settingsPanel .seg-btn').forEach(b => {
+             if(b.id.startsWith('prec')) b.classList.remove('active');
+        });
+        document.getElementById('prec'+val).classList.add('active');
+        savePrefs();
+        runDesc(); runTest(true); calcReg(true);
+    }
+
+    function toggleSettings() {
+        document.getElementById('settingsPanel').classList.toggle('open');
+    }
+
+    // --- LOGIC & DATA ---
+    let DB = { Desc: [], A: [], B: [], reg: [], regModel: null };
+    let chartMode = 'fit';
+
+    function parseNum(str) {
+        if (!str || typeof str !== 'string') return NaN;
+        const p = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+        let c = str;
+        for (let i=0; i<10; i++) c = c.replaceAll(p[i], i);
+        c = c.replaceAll('،', '.').replaceAll(',', '.');
+        return parseFloat(c);
+    }
+
+    const Stats = {
+        mean: d => d.reduce((a,b)=>a+b,0)/d.length,
+        sd: d => { if(d.length<2) return 0;
+            const m=d.reduce((a,b)=>a+b,0)/d.length; return Math.sqrt(d.reduce((a,b)=>a+(b-m)**2,0)/(d.length-1)); },
+        quartiles: d => { const s=[...d].sort((a,b)=>a-b), q1=s[Math.floor(s.length*0.25)], q3=s[Math.floor(s.length*0.75)];
+            return {iqr:q3-q1, q1, q3}; },
+        tCrit: (df, conf) => { const map={1:12.7, 5:2.57, 10:2.23, 100:1.98};
+            return map[df]||1.96; },
+        qTest: (d) => { if(d.length < 3 || d.length > 10) return [];
+            const qCrit = {3:0.970, 4:0.829, 5:0.710, 6:0.625, 7:0.568, 8:0.526, 9:0.493, 10:0.466}; const s = [...d].sort((a,b)=>a-b); const n = s.length;
+            const range = s[n-1] - s[0]; if(range === 0) return []; const qMin = (s[1] - s[0]) / range;
+            const qMax = (s[n-1] - s[n-2]) / range; const crit = qCrit[n]; let outliers = []; if(qMin > crit) outliers.push(s[0]);
+            if(qMax > crit) outliers.push(s[n-1]); return outliers; },
+        linReg: pts => {
+            const n=pts.length;
+            let sx=0,sy=0,sxy=0,sxx=0,syy=0;
+            pts.forEach(p=>{ sx+=p.x; sy+=p.y; sxy+=p.x*p.y; sxx+=p.x*p.x; syy+=p.y*p.y; });
+            const m=(n*sxy-sx*sy)/(n*sxx-sx*sx), b=(sy-m*sx)/n;
+            const ssRes=pts.reduce((a,p)=>a+(p.y-(m*p.x+b))**2,0), ssTot=syy-(sy*sy)/n;
+            const syx=Math.sqrt(ssRes/(n-2));
+            return { type:'linear', m, b, r2: 1-(ssRes/ssTot), syx, lod: (3.3*syx)/Math.abs(m), loq: (10*syx)/Math.abs(m), fn: x=>m*x+b, eq: `y=${m.toFixed(curPrec)}x${b>=0?'+':''}${b.toFixed(curPrec)}` };
+        },
+        wLinReg: pts => {
+            // Weighted Linear Regression (w = 1/x^2)
+            const n = pts.length;
+            let sw=0, swx=0, swy=0, swxy=0, swxx=0;
+            
+            // Find minimum non-zero x to handle zero/blank
+            let minX = Infinity;
+            pts.forEach(p => { if(p.x > 0 && p.x < minX) minX = p.x; });
+            if(minX === Infinity) minX = 1; // Fallback if all are 0
+
+            pts.forEach(p => {
+                let w = (p.x === 0) ? (1/(minX*minX)) : (1/(p.x*p.x)); // Handle x=0
+                sw += w;
+                swx += w * p.x;
+                swy += w * p.y;
+                swxy += w * p.x * p.y;
+                swxx += w * p.x * p.x;
+            });
+
+            const m = (sw * swxy - swx * swy) / (sw * swxx - swx * swx);
+            const b = (swy - m * swx) / sw;
+            
+            // Calc stats (Weighted R2 is complex, simplified here as standard R2 on fitted)
+            let ssRes=0, ssTot=0, yMean = swy/sw;
+            pts.forEach(p => {
+                let yp = m*p.x + b;
+                ssRes += (p.y - yp)**2; // Standard residuals for display
+                ssTot += (p.y - pts.reduce((a,b)=>a+b.y,0)/n)**2;
+            });
+            const syx = Math.sqrt(ssRes/(n-2));
+
+            return { 
+                type:'linear', m, b, r2: 1-(ssRes/ssTot), syx, 
+                lod: (3.3*syx)/Math.abs(m), loq: (10*syx)/Math.abs(m), 
+                fn: x=>m*x+b, eq: `y=${m.toFixed(curPrec)}x${b>=0?'+':''}${b.toFixed(curPrec)}` 
+            };
+        }
+    };
+    
+    // --- CONTROLLER ---
+    function switchTab(id) {
+        document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+        document.getElementById('view-'+id).classList.add('active');
+        event.target.classList.add('active');
+        if(id==='reg') drawChart();
+    }
+
+    function addData(pool) {
+        const el = document.getElementById('inp'+pool);
+        const val = parseNum(el.value);
+        if(isNaN(val)) return alert(t('enter_data'));
+        DB[pool].push(val); el.value=''; el.focus();
+        saveState(); renderPool(pool);
+        if(pool==='Desc') runDesc();
+    }
+
+    function renderPool(pool) {
+        const el = document.getElementById('pool'+pool);
+        if(!el) return;
+        el.innerHTML = DB[pool].map((v, i) => 
+            `<tr>
+                <td>${i+1}</td>
+                <td style="font-weight:bold; color:var(--primary); direction:ltr; text-shadow:0 0 5px rgba(56, 189, 248, 0.4)">${fmt(v)}</td>
+                <td><button class="btn-del" onclick="app.remData('${pool}',${i})" title="Delete">×</button></td>
+             </tr>`
+        ).join('');
+    }
+
+    function remData(pool, i) { DB[pool].splice(i,1); saveState(); renderPool(pool); if(pool==='Desc') runDesc(); }
+    function clearData(pool) { DB[pool]=[]; saveState(); renderPool(pool); if(pool==='Desc') document.getElementById('resDesc').innerHTML=''; }
+
+    function runDesc() {
+        const d=DB.Desc; if(d.length<2) { document.getElementById('resDesc').innerHTML=''; return; }
+        const m=Stats.mean(d), s=Stats.sd(d);
+        const srt=[...d].sort((a,b)=>a-b);
+        const med = d.length%2!==0 ?
+            srt[Math.floor(d.length/2)] : (srt[d.length/2-1]+srt[d.length/2])/2;
+        const sem = s/Math.sqrt(d.length);
+        const ci = Stats.tCrit(d.length-1, curConf)*sem; 
+        
+        let outs = [];
+        if(document.getElementById('chkQ').checked && d.length>=3 && d.length<=10) {
+            const range = srt[d.length-1] - srt[0];
+            if(range>0) {
+                const qCrit = {3:0.97, 4:0.83, 5:0.71, 6:0.62, 7:0.57, 8:0.53, 9:0.49, 10:0.47}[d.length] || 0.5;
+                if((srt[1]-srt[0])/range > qCrit) outs.push(`${fmt(srt[0])} (Q)`);
+                if((srt[d.length-1]-srt[d.length-2])/range > qCrit) outs.push(`${fmt(srt[d.length-1])} (Q)`);
+            }
+        }
+        if(document.getElementById('chkZ').checked) { d.forEach(v => { if(Math.abs((v-m)/s) > 3) outs.push(`${fmt(v)} (Z)`); }); }
+        if(document.getElementById('chkIQR').checked) {
+            const {q1, q3, iqr} = Stats.quartiles(d);
+            const lower = q1 - 1.5*iqr, upper = q3 + 1.5*iqr;
+            d.forEach(v => { if(v<lower || v>upper) outs.push(`${fmt(v)} (IQR)`); });
+        }
+        outs = [...new Set(outs)];
+        document.getElementById('resDesc').innerHTML = `
+            <div class="section-title">${t('res_sum')}</div>
+            <div class="results-grid">
+                <div class="stat-card highlight"><h5>${t('mean')}</h5><div class="value">${fmt(m)}</div></div>
+                <div class="stat-card"><h5>${t('median')}</h5><div class="value">${fmt(med)}</div></div>
+                <div class="stat-card"><h5>${t('std')}</h5><div class="value">${fmt(s)}</div></div>
+                <div class="stat-card"><h5>${t('rsd')}</h5><div class="value">${fmt(m?s/m*100:0)}%</div></div>
+                <div class="stat-card"><h5>${t('ci')}</h5><div class="value">±${fmt(ci)}</div></div>
+                <div class="stat-card" style="${outs.length?'border-color:var(--danger)':''}"><h5>${t('out')}</h5><div class="value" style="font-size:0.9rem">${outs.length?outs.join(', '):t('none')}</div></div>
+            </div>`;
+    }
+
+    function updateTestUI() {
+        const type = document.getElementById('testType').value;
+        document.getElementById('boxB').style.display = (type==='t_one')?'none':'block';
+        document.getElementById('boxMu').style.display = (type==='t_one')?'flex':'none';
+        document.getElementById('resTest').innerHTML = '';
+    }
+
+    function runTest(silent=false) {
+        const A=DB.A, B=DB.B, type=document.getElementById('testType').value;
+        if(A.length<2) { if(!silent) alert(t('enter_data')); return; }
+        
+        let h='', sig=false, msg='';
+        if(type==='t_one') {
+            const mu=parseNum(document.getElementById('inpMu').value);
+            if(isNaN(mu)) { if(!silent) alert(t('enter_val')); return; }
+            const m=Stats.mean(A), s=Stats.sd(A), tCalc=Math.abs(m-mu)/(s/Math.sqrt(A.length));
+            const crit=Stats.tCrit(A.length-1, 0.95);
+            sig=tCalc>crit;
+            msg=sig?t('bias'):t('acc');
+            h=`<div class="stat-card highlight"><h5>${t('mean')}</h5><div class="value">${fmt(m)}</div></div><div class="stat-card"><h5>${t('t_calc')}</h5><div class="value">${fmt(tCalc)}</div></div>`;
+        } else {
+            if(B.length<2) return;
+            const m1=Stats.mean(A), m2=Stats.mean(B);
+            const v1=Stats.variance(A) || Stats.sd(A)**2, v2=Stats.variance(B) || Stats.sd(B)**2;
+            const fCalc = v1>v2?v1/v2:v2/v1;
+            if(type==='f_test') {
+                sig=fCalc>4.0; msg=sig?t('diff'):t('sim');
+                h=`<div class="stat-card"><h5>${t('f_calc')}</h5><div class="value">${fmt(fCalc)}</div></div>`;
+            } else {
+                const sp=Math.sqrt(((A.length-1)*v1+(B.length-1)*v2)/(A.length+B.length-2));
+                const tCalc=Math.abs(m1-m2)/(sp*Math.sqrt(1/A.length+1/B.length));
+                sig=tCalc>2.0; msg=sig?t('diff'):t('sim');
+                h=`<div class="stat-card"><h5>${t('t_calc')}</h5><div class="value">${fmt(tCalc)}</div></div>`;
+            }
+        }
+        document.getElementById('resTest').innerHTML = `<div class="section-title">Result</div><div class="results-grid">${h}</div><div class="conclusion-box ${sig?'conc-fail':'conc-pass'}">${sig?"⚠️ ":"✅ "} ${msg}</div>`;
+    }
+
+    // --- REGRESSION ---
+    function updateRegUI() {
+        const method = document.getElementById('regMethod').value;
+        const isMode = method === 'int_std';
+        document.getElementById('regIS').style.display = isMode ? 'block' : 'none';
+        document.getElementById('thIS').style.display = isMode ? 'table-cell' : 'none';
+        document.getElementById('calcIS').style.display = isMode ? 'block' : 'none';
+        renderReg();
+    }
+
+    function addRegPoint() {
+        const x=parseNum(document.getElementById('regX').value);
+        const y=parseNum(document.getElementById('regY').value);
+        const isVal=parseNum(document.getElementById('regIS').value); 
+        const method = document.getElementById('regMethod').value;
+        
+        if(!isNaN(x)&&!isNaN(y)) { 
+            let pt = {x,y};
+            if(method === 'int_std') {
+                 if(isNaN(isVal) || isVal===0) return alert("Enter valid IS Signal");
+                 pt.is = isVal;
+            }
+            DB.reg.push(pt); 
+            DB.reg.sort((a,b)=>a.x-b.x); 
+            document.getElementById('regX').value=''; document.getElementById('regY').value=''; 
+            document.getElementById('regIS').value=''; document.getElementById('regX').focus(); 
+            saveState(); renderReg(); calcReg(); 
+        }
+    }
+    
+    function renderReg() { 
+        const method = document.getElementById('regMethod').value;
+        const isMode = method === 'int_std';
+        document.getElementById('regTableBody').innerHTML = DB.reg.map((p,i)=> {
+            let extraCol = isMode ? `<td style="color:var(--accent)">${p.is || '-'}</td>` : '';
+            return `<tr><td>${p.x}</td><td>${p.y}</td>${extraCol}<td><button class="btn-del" onclick="app.remReg(${i})">×</button></td></tr>`;
+        }).join(''); 
+    }
+    
+    function remReg(i) { DB.reg.splice(i,1); saveState(); renderReg(); calcReg(); }
+    function clearReg() { DB.reg=[]; saveState(); renderReg(); document.getElementById('resReg').innerHTML=''; clearChart(); }
+
+    function calcReg(silent=false) {
+        updateRegUI();
+        const method = document.getElementById('regMethod').value;
+        const isWeighted = document.getElementById('chkWeight').checked;
+
+        let dataToFit = [];
+        if (method === 'int_std') { dataToFit = DB.reg.map(p => ({ x: p.x, y: (p.y / p.is) })); } 
+        else { dataToFit = DB.reg; }
+
+        let res;
+        if(isWeighted) {
+            res = Stats.wLinReg(dataToFit);
+        } else {
+            res = Stats.linReg(dataToFit); 
+        }
+
+        if(!res) { clearChart(); return; }
+        DB.regModel = res;
+        
+        let extraStats = '';
+        if(method === 'std_add') {
+             const cx = Math.abs(res.b / res.m); 
+             extraStats = `<div class="stat-card highlight"><h5>${t('sa_res')}</h5><div class="value">${fmt(cx)}</div></div>`;
+             document.getElementById('calcUnknown').style.display = 'none';
+        } else {
+             extraStats = `<div class="stat-card"><h5>${t('lod')}</h5><div class="value">${fmt(res.lod)}</div></div><div class="stat-card"><h5>${t('loq')}</h5><div class="value">${fmt(res.loq)}</div></div>`;
+             document.getElementById('calcUnknown').style.display = 'flex';
+        }
+
+        document.getElementById('resReg').innerHTML = `
+            <div class="section-title">${t('mod_perf')}</div>
+            <div class="results-grid">
+                <div class="stat-card" style="grid-column:span 2"><h5>${t('eq')}</h5><div class="value" style="font-size:0.9rem">${res.eq}</div></div>
+                <div class="stat-card"><h5>${t('r2')}</h5><div class="value">${res.r2.toFixed(5)}</div></div>
+                ${extraStats}
+            </div>`;
+        drawChart();
+    }
+
+    function calcUnknown() {
+        const method = document.getElementById('regMethod').value;
+        const ySig=parseNum(document.getElementById('calcY').value);
+        if(isNaN(ySig) || !DB.regModel) return;
+        
+        let finalY = ySig;
+        if(method === 'int_std') {
+             const isSig = parseNum(document.getElementById('calcIS').value);
+             if(isNaN(isSig) || isSig === 0) return alert("Enter valid IS Signal");
+             finalY = ySig / isSig;
+        }
+        const resX = (finalY - DB.regModel.b) / DB.regModel.m;
+        document.getElementById('resUnknown').innerText=`X = ${fmt(resX)}`;
+    }
+    
+    function calcRecovery() {
+        const s = parseNum(document.getElementById('recUnspiked').value);
+        const sp = parseNum(document.getElementById('recSpiked').value);
+        const add = parseNum(document.getElementById('recAdded').value);
+        if(isNaN(s)||isNaN(sp)||isNaN(add)||add===0) return;
+        const rec = ((sp - s)/add)*100;
+        const color = (rec >= 80 && rec <= 120) ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('recResult').innerHTML = `${t('rec_res')} <span style="color:${color}; font-size:1.2rem">${fmt(rec)}%</span>`;
+    }
+
+    function setChartMode(m) { chartMode=m; document.getElementById('btnFit').className=m==='fit'?'chart-toggle-btn active':'chart-toggle-btn'; document.getElementById('btnRes').className=m==='res'?'chart-toggle-btn active':'chart-toggle-btn'; drawChart(); }
+    function clearChart() { const c=document.getElementById('regChart'); c.getContext('2d').clearRect(0,0,c.width,c.height); }
+    
+    function drawChart() {
+        const c=document.getElementById('regChart'); const ctx=c.getContext('2d');
+        const w=c.offsetWidth; const h=c.offsetHeight; c.width=w; c.height=h;
+        const pad=35; const method = document.getElementById('regMethod').value;
+        let pts = [];
+        if(method === 'int_std') { pts = DB.reg.map(p => ({ x:p.x, y: (p.y/p.is) })); } 
+        else { pts = DB.reg; }
+
+        ctx.clearRect(0,0,w,h);
+        if(pts.length<2) return;
+        
+        const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+        let minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+        if(method === 'std_add' && DB.regModel) { const xInt = -DB.regModel.b / DB.regModel.m; minX = Math.min(minX, xInt); }
+        
+        const rangeX = maxX - minX; minX -= rangeX * 0.1; maxX += rangeX * 0.1;
+        const dx=(maxX-minX)||1, dy=(maxY-minY)||1;
+        const scX = v => pad + (v-minX)/dx*(w-2*pad);
+        const scY = v => h-pad - (v-minY)/dy*(h-2*pad);
+        
+        // Grid
+        ctx.strokeStyle= 'rgba(0, 255, 200, 0.2)'; ctx.lineWidth=1; ctx.beginPath(); // Cyan Grid
+        for(let i=0;i<=5;i++){ let x=pad+i*(w-2*pad)/5, y=h-pad-i*(h-2*pad)/5; ctx.moveTo(x,pad); ctx.lineTo(x,h-pad); ctx.moveTo(pad,y); ctx.lineTo(w-pad,y); }
+        ctx.stroke();
+        
+        // Zero Axis
+        const zx = scX(0), zy = scY(0);
+        ctx.strokeStyle= 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth=1.5; ctx.beginPath();
+        if(zx>pad && zx<w-pad) { ctx.moveTo(zx, pad); ctx.lineTo(zx, h-pad); } 
+        if(zy>pad && zy<h-pad) { ctx.moveTo(pad, zy); ctx.lineTo(w-pad, zy); } 
+        ctx.stroke();
+
+        let plotPts = pts;
+        if(chartMode === 'res' && DB.regModel) {
+            plotPts = pts.map(p => ({ x:p.x, y: p.y - DB.regModel.fn(p.x) }));
+            ctx.beginPath(); ctx.moveTo(pad, h/2); ctx.lineTo(w-pad, h/2); ctx.strokeStyle='#888'; ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
+        } else if(DB.regModel) {
+            ctx.strokeStyle = method==='std_add' ? '#38bdf8' : (method==='int_std' ? '#10b981' : '#ef4444');
+            ctx.lineWidth=2; ctx.beginPath();
+            for(let i=0; i<=50; i++) {
+                let tx = minX + (dx*i/50), ty = DB.regModel.fn(tx);
+                if(i===0) ctx.moveTo(scX(tx),scY(ty)); else ctx.lineTo(scX(tx),scY(ty));
+            }
+            ctx.stroke();
+        }
+
+        pts.forEach((p, i) => {
+            let cx = scX(p.x);
+            let cy = (chartMode==='res') ? (h/2 - (plotPts[i].y/dy)*(h-2*pad)) : scY(p.y);
+            // Neon Points
+            ctx.shadowBlur=10; ctx.shadowColor='#fbbf24';
+            ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 7); ctx.fill();
+        });
+        ctx.shadowBlur=0;
+        ctx.fillStyle='#94a3b8'; ctx.font="10px monospace";
+        ctx.fillText(minX.toFixed(1), pad, h-10); ctx.fillText(maxX.toFixed(1), w-pad-20, h-10);
+    }
+
+    function savePrefs() { localStorage.setItem('SC_PREFS', JSON.stringify({ lang: curLang, theme: document.documentElement.getAttribute('data-theme'), prec: curPrec, checks: { q:document.getElementById('chkQ').checked, z:document.getElementById('chkZ').checked, iqr:document.getElementById('chkIQR').checked } })); }
+    function loadPrefs() {
+        const p = localStorage.getItem('SC_PREFS');
+        if(p) {
+            const c = JSON.parse(p);
+            if(c.theme) document.documentElement.setAttribute('data-theme', c.theme);
+            if(c.lang) { document.getElementById('langSel').value = c.lang; setLang(c.lang); }
+            if(c.prec) { setPrec(c.prec); }
+            if(c.checks) { document.getElementById('chkQ').checked = c.checks.q; document.getElementById('chkZ').checked = c.checks.z; document.getElementById('chkIQR').checked = c.checks.iqr; }
+        }
+    }
+    
+    function saveState() { const extra = { mu: document.getElementById('inpMu')?.value }; localStorage.setItem('SC_DB_V65', JSON.stringify({...DB, ...extra})); }
+    function loadState() { const s = localStorage.getItem('SC_DB_V65'); if(s) { try { const d=JSON.parse(s); DB={...DB, ...d}; if(d.mu) document.getElementById('inpMu').value=d.mu; renderPool('Desc'); renderPool('A'); renderPool('B'); renderReg(); if(DB.Desc.length) runDesc(); if(DB.reg.length) calcReg(true); } catch(e){} } }
+    function hardReset() { if(confirm("Reset all?")) { localStorage.removeItem('SC_DB_V65'); location.reload(); } }
+    function exportData() { const a=document.createElement('a'); a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(DB)); a.download="SC_Data.json"; a.click(); }
+    function importData(input) { const f=input.files[0]; if(!f)return; const r=new FileReader(); r.onload=function(e){ try{ DB=JSON.parse(e.target.result); saveState(); location.reload(); }catch(err){alert("Invalid File");} }; r.readAsText(f); }
+
+    function loadDemoData() {
+        if(confirm("Load Standard Addition Test Data?")) {
+            DB.reg = [{x: 0, y: 0.125}, {x: 2, y: 0.245}, {x: 4, y: 0.380}, {x: 6, y: 0.495}, {x: 8, y: 0.630}, {x: 10, y: 0.760}];
+            switchTab('reg'); renderReg(); calcReg();
+        }
+    }
+
+    return { setLang, toggleTheme, switchTab, addData, remData, clearData, runDesc, updateTestUI, runTest, addRegPoint, remReg, clearReg, calcReg, calcUnknown, setChartMode, exportData, importData, saveState, hardReset, loadState, setConf, toggleSettings, loadPrefs, loadDemoData, calcRecovery, updateRegUI, setPrec };
+})();
+
+window.onload = function() { app.loadState(); app.loadPrefs(); app.updateTestUI(); app.updateRegUI(); };
+window.onbeforeprint = function() { app.runDesc(); app.runTest(true); app.calcReg(true); };
+</script>
+</body>
+</html>
